@@ -1,0 +1,20 @@
+# 
+# ============= Git 忽略檔案 ===============
+
+
+# Python 虛擬環境
+.venv/
+
+# Python cache files   
+__pycache__/
+
+# Byte-compiled / optimized / DLL files
+# Python 編譯檔案
+*.pyc
+
+# 環境變數及敏感設定
+.env
+
+
+logs/
+reports/
