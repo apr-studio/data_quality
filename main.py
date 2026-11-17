@@ -4,30 +4,51 @@ from db import get_connection
 from extract import extract_orders
 from transform import transform_orders
 from load import load_issues
+from etl_logging import setup_logging
+import logging
+import time
 
 
 def main():
 
-    with get_connection() as conn:
+    setup_logging()
 
-        print("PostgreSQL 連線成功！")
+    start_time = time.perf_counter()
 
-        # 1. Extract
-        df = extract_orders(conn)
+    logging.info("Pipeline 開始執行。")
 
-        print("\n原始資料筆數：", len(df))
+    try :
+        with get_connection() as conn:
 
-        # 2. Transform
-        valid_df, issue_df = transform_orders(df)
+            logging.info("資料庫連線成功。")
 
-        print("有效資料筆數：", len(valid_df))
-        print("異常資料筆數：", len(issue_df))
+            # 1. Extract
+            df = extract_orders(conn)
 
-        # 3. Load
-        inserted_count = load_issues(conn, issue_df)
+            logging.info(f"原始資料筆數：{len(df)}")
 
-        print("\n資料載入完成！")
-        print("本次新增異常紀錄：", inserted_count)
+
+            # 2. Transform
+            valid_df, issue_df = transform_orders(df)
+
+            logging.info(f"有效資料筆數：{len(valid_df)}")
+            logging.info(f"異常資料筆數：{len(issue_df)}")
+
+            # 3. Load
+            inserted_count = load_issues(conn, issue_df)
+
+            logging.info(f"資料載入完成！")
+            logging.info(f"本次新增異常紀錄：{inserted_count}")
+
+        logging.info("Pipeline 執行完成。")
+
+    except Exception as e:
+        logging.exception(f"Pipeline 執行失敗：{e}")
+        raise 
+    finally:
+        elapsed_time = time.perf_counter() - start_time
+        logging.info(f"Pipeline 執行時間：{elapsed_time:.2f} 秒")
+        logging.info("Pipeline 結束。")
 
 
 if __name__ == "__main__":
