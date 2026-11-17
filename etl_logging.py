@@ -1,19 +1,15 @@
 # 設定 logging
 
 import logging
-from pathlib import Path
+from file_sys import create_file_path 
 
 
 def setup_logging():
+    """
+    設定 logging 基本資料，當系統紀錄訊息時，會在 ./logs/pipeline.log 指定的檔案和控制台中顯示。
+    """
 
-    log_dir = Path(__file__).resolve().parent / "logs"
-
-    log_dir.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    log_file = log_dir / "pipeline.log"
+    log_file = create_file_path("logs", "pipeline.log")
 
     logging.basicConfig(
         level=logging.INFO,
