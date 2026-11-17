@@ -3,6 +3,7 @@
 from db import get_connection
 from extract import extract_orders
 from transform import transform_orders
+from load import load_issues
 
 
 def main():
@@ -11,24 +12,22 @@ def main():
 
         print("PostgreSQL 連線成功！")
 
-        # Extract
+        # 1. Extract
         df = extract_orders(conn)
 
         print("\n原始資料筆數：", len(df))
 
-        # Transform
+        # 2. Transform
         valid_df, issue_df = transform_orders(df)
-
-        print("\n資料轉換完成！")
 
         print("有效資料筆數：", len(valid_df))
         print("異常資料筆數：", len(issue_df))
 
-        print("\n異常類型統計：")
-        print(issue_df["issue_type"].value_counts())
+        # 3. Load
+        inserted_count = load_issues(conn, issue_df)
 
-        print("\n有效資料營收：")
-        print(valid_df["revenue"].sum())
+        print("\n資料載入完成！")
+        print("本次新增異常紀錄：", inserted_count)
 
 
 if __name__ == "__main__":
