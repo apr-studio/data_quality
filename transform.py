@@ -20,14 +20,14 @@ def transform_orders(df):
         })
 
     # 2. 檢查無效數量
-    invalid_quantity = df["quantity"] <= 0
+    invalid_quantity = df["quantity"].isna() | (df["quantity"] <= 0)
 
     for _, row in df[invalid_quantity].iterrows():
         issues.append({
             "order_item_id": row["order_item_id"],
             "order_id": row["order_id"],
             "issue_type": "Invalid Quantity",
-            "issue_description": "Quantity must be greater than zero"
+            "issue_description": "Quantity must be present and greater than zero"
         })
 
     # 3. 檢查取消訂單
