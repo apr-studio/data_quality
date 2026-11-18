@@ -5,8 +5,9 @@
 ## Pipeline 流程
 
 1. **Extract**：讀取 `public.orders` 中的訂單資料。
-2. **Transform**：將完成、單價不為空且數量大於零的明細視為有效資料，並計算 `revenue`。以下狀況會建立異常紀錄：
+2. **Transform**：將已完成、單價不為空且不小於零、數量大於零的明細視為有效資料，並計算 `revenue`。以下狀況會建立異常紀錄：
    - 商品單價缺失（`Missing Unit Price`）
+   - 商品單價小於零（`Invalid Unit Price`）；零單價視為有效
    - 數量缺失、為零或小於零（`Invalid Quantity`）
    - 訂單已取消（`Cancelled Order`）
 3. **Load**：將異常寫入 `public.data_quality_issue_log`。相同訂單明細與異常類型不會重複新增。
@@ -63,13 +64,14 @@ python main.py
 python -m unittest discover -s tests -v
 ```
 
-若只要執行轉換測試檔：
+單獨執行轉換或資料提取測試：
 
 ```bash
 python -m unittest discover -s tests -p "test_transform.py" -v
+python -m unittest discover -s tests -p "test_extract.py" -v
 ```
 
-此測試涵蓋資料轉換及異常判斷，不會測試 PostgreSQL 寫入；資料庫載入請透過 `python main.py` 執行。
+轉換測試涵蓋有效資料、營收及異常判斷；提取測試以 mock 資料庫游標驗證 SQL、欄位名稱、資料列及空結果，不會連接 PostgreSQL。資料庫載入本身不在這些單元測試範圍內，請透過 `python main.py` 執行完整流程。
 
 ## 專案結構
 
@@ -83,5 +85,6 @@ python -m unittest discover -s tests -p "test_transform.py" -v
 ├── etl_logging.py     # Pipeline 日誌設定
 ├── main.py            # Pipeline 入口
 └── tests/
+    ├── test_extract.py
     └── test_transform.py
 ```

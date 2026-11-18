@@ -99,6 +99,43 @@ class TransformOrdersTests(unittest.TestCase):
             },
         )
 
+    def test_negative_price_is_reported_and_zero_price_is_valid(self):
+        orders = pd.DataFrame(
+            [
+                {
+                    "order_item_id": 1,
+                    "order_id": 101,
+                    "unit_price": -1.0,
+                    "quantity": 2,
+                    "status": "Completed",
+                },
+                {
+                    "order_item_id": 2,
+                    "order_id": 102,
+                    "unit_price": 0.0,
+                    "quantity": 2,
+                    "status": "Completed",
+                },
+            ]
+        )
+
+        valid_orders, issues = transform_orders(orders)
+
+        self.assertEqual(valid_orders["order_item_id"].tolist(), [2])
+        self.assertEqual(valid_orders["revenue"].tolist(), [0.0])
+        self.assertEqual(
+            issues[
+                ["order_item_id", "issue_type", "issue_description"]
+            ].to_dict("records"),
+            [
+                {
+                    "order_item_id": 1,
+                    "issue_type": "Invalid Unit Price",
+                    "issue_description": "Unit price must not be negative",
+                }
+            ],
+        )
+
     def test_completed_order_with_valid_fields_has_revenue(self):
         orders = pd.DataFrame(
             [

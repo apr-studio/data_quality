@@ -8,15 +8,22 @@ def transform_orders(df):
     # 建立異常紀錄
     issues = []
 
-    # 1. 檢查缺少商品單價
-    missing_price = df["unit_price"].isna()
+    # 1. 檢查缺少或負的商品單價
+    invalid_price = df["unit_price"].isna() | (df["unit_price"] < 0)
 
-    for _, row in df[missing_price].iterrows():
+    for _, row in df[invalid_price].iterrows():
+        is_missing = pd.isna(row["unit_price"])
         issues.append({
             "order_item_id": row["order_item_id"],
             "order_id": row["order_id"],
-            "issue_type": "Missing Unit Price",
-            "issue_description": "Unit price is missing"
+            "issue_type": (
+                "Missing Unit Price" if is_missing else "Invalid Unit Price"
+            ),
+            "issue_description": (
+                "Unit price is missing"
+                if is_missing
+                else "Unit price must not be negative"
+            )
         })
 
     # 2. 檢查無效數量
@@ -48,6 +55,7 @@ def transform_orders(df):
     valid_mask = (
         (df["status"] == "Completed")
         & df["unit_price"].notna()
+        & (df["unit_price"] >= 0)
         & (df["quantity"] > 0)
     )
 
