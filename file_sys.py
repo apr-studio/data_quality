@@ -1,6 +1,64 @@
 from pathlib import Path
+import re
+import logging
 
-def create_file_path( dirname: str ,filename: str = "default.txt" ) -> Path:
+DEFAULT_DIRNAME = "default"
+DEFAULT_FILENAME = "default.txt"
+DEFAULT_DIR_PATTERN = r'[\w-]+'
+DEFAULT_FILE_PATTERN = r'[\w.-]+'
+
+
+
+def get_correct_name(name: str, defaultname: str,pattern :str , err_message: str) -> str:
+    """
+    取得正確的名稱，如果 name 為 None、空字串或不合法的字元，則回傳預設值 defaultname。
+
+    Args:
+        name (str): 名稱。
+        defaultname (str): 預設名稱。
+        err_message (str): 在 Terminal 顯示錯誤訊息。
+
+    Returns:
+        str: 正確的名稱。
+    """
+    name = name.strip() if  name and  name.strip() else  defaultname
+    if not re.fullmatch(pattern, name):
+            logging.warning(f"{err_message}")
+            name = defaultname    
+    return name  
+    
+
+def get_dirname(dirname: str = DEFAULT_DIRNAME) -> str:
+    """
+    取得資料夾名稱。
+
+    Args:
+        dirname (str): 資料夾名稱，預設為 "default"。
+
+    Returns:
+        str: 資料夾名稱，如果 dirname 為 None、空字串或不合法的字元，則回傳預設值 DEFAULT_DIRNAME。
+    """
+    
+    return get_correct_name(name= dirname, defaultname=DEFAULT_DIRNAME,pattern=DEFAULT_DIR_PATTERN, err_message= f"資料夾名稱 '{dirname}' 不合法，將使用預設值 '{DEFAULT_DIRNAME}'。")
+
+def get_filename(filename: str = DEFAULT_FILENAME) -> str:
+    """
+    取得檔案名稱。
+
+    Args:
+        filename (str): 檔案名稱，預設為 "default.txt"。
+
+
+    Returns:
+        str: 檔案名稱，如果 filename 為 None、空字串或不合法的字元，則回傳預設值 DEFAULT_FILENAME。
+    """
+
+
+    return get_correct_name(name=filename, defaultname=DEFAULT_FILENAME,pattern=DEFAULT_FILE_PATTERN, err_message=f"檔案名稱 '{filename}' 不合法，將使用預設值 '{DEFAULT_FILENAME}'。")
+
+ 
+
+def create_file_path( dirname: str = DEFAULT_DIRNAME,filename: str = DEFAULT_FILENAME ) -> Path:
     """
     建立檔案路徑。
 
@@ -11,9 +69,9 @@ def create_file_path( dirname: str ,filename: str = "default.txt" ) -> Path:
     Returns:
         Path: 檔案的完整路徑。
     """
-    return create_dir_path(dirname) / filename
+    return create_dir_path(dirname) / get_filename(filename)
 
-def create_dir_path(dirname: str= "default") -> Path:
+def create_dir_path(dirname: str= DEFAULT_DIRNAME) -> Path:
     """
     建立資料夾路徑
 
@@ -22,7 +80,7 @@ def create_dir_path(dirname: str= "default") -> Path:
     Returns:
         Path: 資料夾的完整路徑。
     """
-    dir_path = get_current_dir_path() / dirname
+    dir_path = get_current_dir_path() / get_dirname(dirname)
     dir_path.mkdir(
         parents=True,
         exist_ok=True
