@@ -9,22 +9,36 @@ DEFAULT_FILE_PATTERN = r'[\w.-]+'
 
 
 
-def get_correct_name(name: str, defaultname: str,pattern :str , err_message: str) -> str:
+def get_correct_name(
+    name: str | None,
+    defaultname: str,
+    pattern: str,
+    err_message: str,
+) -> str:
     """
     取得正確的名稱，如果 name 為 None、空字串或不合法的字元，則回傳預設值 defaultname。
 
     Args:
         name (str): 名稱。
         defaultname (str): 預設名稱。
+        pattern (str): 正則表達式，用於驗證名稱的合法性。
         err_message (str): 在 Terminal 顯示錯誤訊息。
 
     Returns:
         str: 正確的名稱。
     """
-    name = name.strip() if  name and  name.strip() else  defaultname
-    if not re.fullmatch(pattern, name):
-            logging.warning(f"{err_message}")
-            name = defaultname    
+    if name is None or (isinstance(name, str) and not name.strip()):
+        return defaultname
+
+    if not isinstance(name, str):
+        logging.warning(err_message)
+        return defaultname
+
+    name = name.strip()
+    if name in {".", ".."} or not re.fullmatch(pattern, name):
+        logging.warning(err_message)
+        return defaultname
+
     return name  
     
 
@@ -94,5 +108,5 @@ def get_current_dir_path() -> Path:
     Returns:
         Path: 當前資料夾的完整路徑。
     """
-    return Path(__file__).resolve().parent 
+    return Path(__file__).resolve().parent
 

@@ -25,14 +25,4 @@ def setup_logging():
         ],
         force=True
     )
-    
-    """
-    檢查 logging 設定是否正確。
-    """
-    logger = logging.getLogger()
-    logger.info("Logging 設定檢查成功。")
-    print("Root Level:", logging.getLogger().level)
-
-    for handler in logging.getLogger().handlers:
-        print("Handler:", handler)
-        print("Handler Level:", handler.level)
+  
