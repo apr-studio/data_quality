@@ -12,6 +12,9 @@ from config import (
 
 
 def get_connection():
+    """
+    建立與 PostgreSQL 資料庫的連線。
+    """
 
     password = getpass("請輸入 PostgreSQL 密碼：")
 

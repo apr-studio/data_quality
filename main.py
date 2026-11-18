@@ -10,6 +10,9 @@ import time
 
 
 def main():
+    """
+    執行整個 ETL Pipeline，包括 Extract、Transform 和 Load 三個步驟。
+    """
 
     setup_logging()
 

@@ -4,6 +4,12 @@ import pandas as pd
 
 
 def extract_orders(conn):
+    """
+    從 PostgreSQL 資料庫中提取訂單資料。
+    
+    參數:
+        conn: psycopg 連線物件，用於與資料庫進行互動。  
+    """
 
     query = """
         SELECT *

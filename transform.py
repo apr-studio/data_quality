@@ -4,6 +4,12 @@ import pandas as pd
 
 
 def transform_orders(df):
+    """
+    分析及處理訂單資料，並將異常資料與有效資料分
+    開。
+    參數:
+        df: 包含訂單資料的 pandas DataFrame。
+    """
 
     # 建立異常紀錄
     issues = []
