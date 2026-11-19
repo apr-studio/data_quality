@@ -51,8 +51,8 @@ cp .env.example .env.local
 ```dotenv
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=python_db
-DB_USER=elena
+DB_NAME=db_name
+DB_USER=user_name
 DB_PASSWORD=你的資料庫密碼
 
 CONSOLE_RUN_ID_MODE=once
