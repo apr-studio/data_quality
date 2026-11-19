@@ -4,20 +4,23 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+import pandas as pd
+
 from report import (
     REPORT_DIR,
     REPORT_FILENAME,
+    create_quality_report,
     generate_quality_report,
     save_quality_report,
     setup_report,
 )
 
 
-class ReportTests(unittest.TestCase):
+class Report2Tests(unittest.TestCase):
     def test_setup_report_uses_configured_directory_and_filename(self):
         expected_path = Path("/tmp/data_quality.json")
 
-        with patch("report.create_file_path", return_value=expected_path) as create:
+        with patch("report2.create_file_path", return_value=expected_path) as create:
             result = setup_report()
 
         self.assertEqual(result, expected_path)
@@ -26,69 +29,102 @@ class ReportTests(unittest.TestCase):
             filename=REPORT_FILENAME,
         )
 
-    def test_generates_report_with_rates_rounded_to_two_decimal_places(self):
-        result = generate_quality_report(
-            total_records=7,
-            valid_records=5,
-            invalid_records=2,
+    def test_report_counts_invalid_records_and_individual_issues(self):
+        source = pd.DataFrame({"order_item_id": [1, 2, 3]})
+        valid = pd.DataFrame({"order_item_id": [1]})
+        issues = pd.DataFrame(
+            {
+                "order_item_id": [2, 2, 3],
+                "issue_type": [
+                    "Invalid Quantity",
+                    "Invalid Unit Price",
+                    "Cancelled Order",
+                ],
+            }
         )
+
+        result = generate_quality_report(source, valid, issues, inserted_count=2)
 
         self.assertEqual(
             result,
             {
-                "total_records": 7,
-                "valid_records": 5,
-                "invalid_records": 2,
-                "valid_rate": 71.43,
-                "invalid_rate": 28.57,
+                "summary": {
+                    "total_records": 3,
+                    "valid_records": 1,
+                    "invalid_records": 2,
+                    "issue_count": 3,
+                },
+                "quality_rates": {
+                    "valid_rate": 33.33,
+                    "invalid_rate": 66.67,
+                },
+                "load_statistics": {"inserted_count": 2},
             },
         )
 
-    def test_empty_dataset_has_zero_rates(self):
-        result = generate_quality_report(0, 0, 0)
-
-        self.assertEqual(result["valid_rate"], 0.0)
-        self.assertEqual(result["invalid_rate"], 0.0)
-
-    def test_rejects_negative_counts_and_mismatched_totals(self):
-        invalid_counts = (
-            (-1, 0, 0),
-            (1, -1, 2),
-            (1, 2, -1),
-            (3, 1, 1),
+    def test_empty_issue_dataframe_without_columns_is_supported(self):
+        result = generate_quality_report(
+            pd.DataFrame(),
+            pd.DataFrame(),
+            pd.DataFrame(),
+            inserted_count=0,
         )
 
-        for counts in invalid_counts:
-            with self.subTest(counts=counts), self.assertRaises(ValueError):
-                generate_quality_report(*counts)
+        self.assertEqual(result["summary"]["invalid_records"], 0)
+        self.assertEqual(result["summary"]["issue_count"], 0)
+        self.assertEqual(result["quality_rates"]["valid_rate"], 0.0)
+        self.assertEqual(result["quality_rates"]["invalid_rate"], 0.0)
 
-    def test_rejects_non_integer_counts_and_booleans(self):
-        invalid_counts = (
-            (1.5, 1, 0.5),
-            (1, 0.5, 0),
-            (1, 1, 0.0),
-            (True, 1, 0),
-            (1, False, 1),
-            (1, 1, False),
-        )
+    def test_rejects_invalid_inserted_counts(self):
+        for inserted_count in (-1, 1.5, True):
+            with self.subTest(inserted_count=inserted_count):
+                with self.assertRaises(ValueError):
+                    generate_quality_report(
+                        pd.DataFrame(),
+                        pd.DataFrame(),
+                        pd.DataFrame(),
+                        inserted_count,
+                    )
 
-        for counts in invalid_counts:
-            with self.subTest(counts=counts), self.assertRaises(ValueError):
-                generate_quality_report(*counts)
+    def test_rejects_nonempty_issues_without_order_item_ids(self):
+        with self.assertRaisesRegex(ValueError, "order_item_id"):
+            generate_quality_report(
+                pd.DataFrame({"order_item_id": [1]}),
+                pd.DataFrame(),
+                pd.DataFrame({"issue_type": ["Invalid Quantity"]}),
+                inserted_count=1,
+            )
 
-    def test_saves_json_report_as_utf8(self):
-        report_data = {"status": "完成", "total_records": 2}
+    def test_saves_report_and_create_helper_returns_saved_report(self):
+        source = pd.DataFrame({"order_item_id": [1]})
+        valid = source.copy()
+        issues = pd.DataFrame()
 
         with TemporaryDirectory() as directory:
-            output_path = Path(directory) / "data_quality.json"
-
-            save_quality_report(report_data, output_path)
-
-            self.assertEqual(
-                json.loads(output_path.read_text(encoding="utf-8")),
-                report_data,
+            expected_path = Path(directory) / "nested" / "report.json"
+            result = create_quality_report(
+                source,
+                valid,
+                issues,
+                inserted_count=0,
+                output_path=expected_path,
             )
-            self.assertIn("完成", output_path.read_text(encoding="utf-8"))
+
+            self.assertTrue(expected_path.exists())
+            self.assertEqual(
+                json.loads(expected_path.read_text(encoding="utf-8")),
+                result,
+            )
+            self.assertEqual(result["summary"]["total_records"], 1)
+
+    def test_save_rejects_invalid_report_and_path(self):
+        with TemporaryDirectory() as directory:
+            output_path = Path(directory) / "report.json"
+
+            with self.assertRaises(ValueError):
+                save_quality_report([], output_path)
+            with self.assertRaises(ValueError):
+                save_quality_report({}, str(output_path))
 
 
 if __name__ == "__main__":
