@@ -107,6 +107,16 @@ class Report2Tests(unittest.TestCase):
         source = pd.DataFrame({"order_item_id": [1]})
         valid = source.copy()
         issues = pd.DataFrame()
+        processing_time = {
+            "started_at": "2026-11-19T10:00:00+08:00",
+            "finished_at": "2026-11-19T10:00:01+08:00",
+            "duration_seconds": 1.0,
+            "stages": {
+                "extract_seconds": 0.4,
+                "transform_seconds": 0.3,
+                "load_seconds": 0.2,
+            },
+        }
 
         with TemporaryDirectory() as directory:
             expected_path = Path(directory) / "nested" / "report.json"
@@ -116,6 +126,7 @@ class Report2Tests(unittest.TestCase):
                 issues,
                 inserted_count=0,
                 output_path=expected_path,
+                processing_time=processing_time,
             )
 
             self.assertTrue(expected_path.exists())
@@ -124,6 +135,7 @@ class Report2Tests(unittest.TestCase):
                 result,
             )
             self.assertEqual(result["summary"]["total_records"], 1)
+            self.assertEqual(result["processing_time"], processing_time)
 
     def test_each_run_id_writes_a_separate_report_file(self):
         source = pd.DataFrame({"order_item_id": [1]})

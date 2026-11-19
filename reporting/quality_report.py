@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Optional, TypedDict
 
 import pandas as pd
 
@@ -12,6 +13,19 @@ from infrastructure.paths import create_file_path
 
 REPORT_DIR = "reports"
 REPORT_FILENAME = "data_quality.json"
+
+
+class ProcessingStages(TypedDict):
+    extract_seconds: float
+    transform_seconds: float
+    load_seconds: float
+
+
+class ProcessingTime(TypedDict):
+    started_at: str
+    finished_at: str
+    duration_seconds: float
+    stages: ProcessingStages
 
 
 def setup_report(run_id: str) -> Path:
@@ -27,6 +41,7 @@ def generate_quality_report(
     valid_df: pd.DataFrame,
     issue_df: pd.DataFrame,
     inserted_count: int,
+    processing_time: Optional[ProcessingTime] = None,
 ) -> dict:
     """依輸入資料計算摘要、品質率及載入統計。"""
     if not all(
@@ -62,7 +77,7 @@ def generate_quality_report(
         valid_rate = valid_records / total_records * 100
         invalid_rate = invalid_records / total_records * 100
 
-    return {
+    report: dict = {
         "summary": {
             "total_records": total_records,
             "valid_records": valid_records,
@@ -77,6 +92,9 @@ def generate_quality_report(
             "inserted_count": inserted_count,
         },
     }
+    if processing_time is not None:
+        report["processing_time"] = processing_time
+    return report
 
 
 def save_quality_report(report: dict, output_path: Path) -> None:
@@ -102,6 +120,7 @@ def create_quality_report(
     issue_df: pd.DataFrame,
     inserted_count: int,
     output_path: Path,
+    processing_time: Optional[ProcessingTime] = None,
 ) -> dict:
     """產生品質統計並儲存至指定路徑。"""
     report = generate_quality_report(
@@ -109,6 +128,7 @@ def create_quality_report(
         valid_df=valid_df,
         issue_df=issue_df,
         inserted_count=inserted_count,
+        processing_time=processing_time,
     )
     save_quality_report(report=report, output_path=output_path)
     return report

@@ -128,12 +128,13 @@ python main.py
 reports/data_quality_YYYYMMDD_<run_id>.json
 ```
 
-報表包含原始資料筆數、有效資料筆數、異常資料筆數、異常項目數量、有效率、異常率及本次新增筆數。
+報表包含原始資料筆數、有效資料筆數、異常資料筆數、異常項目數量、有效率、異常率、本次新增筆數，以及處理時間資訊。
 
 - `valid_rate` 與 `invalid_rate` 以百分比表示並四捨五入至小數點後兩位。
 - `invalid_records` 是有異常的不同 `order_item_id` 數量。
 - `issue_count` 是異常紀錄總數。
 - `inserted_count` 是本次實際新增到資料庫的筆數。
+- `processing_time` 記錄含時區的 `started_at`、`finished_at`、總耗時 `duration_seconds`，以及 extract、transform、load 各階段的耗時（秒）。總耗時涵蓋 ETL 階段，不含報表產生與寫檔時間。
 
 ## 測試
 
