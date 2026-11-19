@@ -1,5 +1,8 @@
 # 將結果寫回 PostgresSQL 資料庫
 
+import logging
+
+
 def load_issues(conn, issue_df):
     """
     將異常資料寫入 PostgreSQL 資料庫的 data_quality_issue_log
@@ -11,7 +14,7 @@ def load_issues(conn, issue_df):
     """
 
     if issue_df.empty:
-        print("沒有異常資料需要寫入。")
+        logging.info("沒有異常資料需要寫入。")
         return 0
 
     query = """

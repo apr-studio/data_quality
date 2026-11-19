@@ -54,7 +54,11 @@ python main.py
 
 `main.py` 會依序讀取訂單、檢查及轉換資料，再呼叫 `load.py` 中的 `load_issues()`，將異常寫入 `public.data_quality_issue_log`。`load.py` 提供載入函式，並非單獨執行的程式入口；請執行 `main.py` 以完成資料庫讀取與寫入。若沒有異常資料，便不會新增紀錄。每次執行新增的筆數會顯示於終端機；相同的訂單明細和異常類型已存在時，資料庫唯一限制會讓它略過。
 
-執行紀錄會顯示於終端機，並寫入 `logs/pipeline.log`。
+### 輸出檔案
+
+- 日誌同時輸出至終端機及 `logs/pipeline.log`。每筆紀錄包含時間、日誌等級和本次執行 ID；結束分隔線只顯示原始文字。
+- 每次執行會在 `reports/` 產生獨立的 JSON 品質報表，檔名格式為 `data_quality_YYYYMMDD_<run_id>.json`，可用 run ID 對照同次執行的日誌。
+- 報表包含原始資料、有效資料、異常資料及異常項目數量；有效率與異常率以百分比表示並四捨五入至小數點後兩位。`invalid_records` 是有異常的不同訂單明細數，`issue_count` 則是異常紀錄總數；`inserted_count` 是本次實際新增至資料庫的異常筆數。
 
 ## 測試
 
@@ -83,8 +87,13 @@ python -m unittest discover -s tests -p "test_extract.py" -v
 ├── transform.py       # 品質檢查與營收計算
 ├── load.py            # 寫入異常紀錄
 ├── etl_logging.py     # Pipeline 日誌設定
+├── report.py          # 產生並儲存品質報表
+├── file_sys.py        # 建立輸出目錄及檔案路徑
 ├── main.py            # Pipeline 入口
 └── tests/
     ├── test_extract.py
+    ├── test_load.py
+    ├── test_report.py
+    ├── test_etl_logging.py
     └── test_transform.py
 ```

@@ -4,9 +4,10 @@ from db import get_connection
 from extract import extract_orders
 from transform import transform_orders
 from load import load_issues
-from etl_logging import setup_logging
+from etl_logging import setup_logging, LOGGING_END
 import logging
 import time
+from uuid import uuid4
 from report import create_quality_report, setup_report
 
 
@@ -15,7 +16,8 @@ def main():
     執行整個 ETL Pipeline，包括 Extract、Transform 和 Load 三個步驟。
     """
 
-    setup_logging()
+    run_id = uuid4().hex
+    setup_logging(run_id)
 
     start_time = time.perf_counter()
 
@@ -50,7 +52,7 @@ def main():
                 valid_df=valid_df,
                 issue_df=issue_df,
                 inserted_count=inserted_count,
-                output_path=setup_report(),
+                output_path=setup_report(run_id),
             )
 
         logging.info("Pipeline 執行完成。")
@@ -62,6 +64,7 @@ def main():
         elapsed_time = time.perf_counter() - start_time
         logging.info(f"Pipeline 執行時間：{elapsed_time:.2f} 秒")
         logging.info("Pipeline 結束。")
+        logging.info(LOGGING_END, extra={"raw_message": True})
 
 
 if __name__ == "__main__":

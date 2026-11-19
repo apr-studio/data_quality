@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
@@ -14,10 +14,12 @@ class LoadIssuesTests(unittest.TestCase):
     def test_empty_issues_do_not_open_a_cursor(self):
         issues = pd.DataFrame()
 
-        result = load_issues(self.connection, issues)
+        with patch("load.logging.info") as log_info:
+            result = load_issues(self.connection, issues)
 
         self.assertEqual(result, 0)
         self.connection.cursor.assert_not_called()
+        log_info.assert_called_once_with("沒有異常資料需要寫入。")
 
     def test_inserts_issue_records_and_returns_inserted_count(self):
         issues = pd.DataFrame(

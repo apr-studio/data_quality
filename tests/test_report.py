@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -17,27 +18,24 @@ from report import (
 
 
 class Report2Tests(unittest.TestCase):
-    def test_setup_report_uses_unique_timestamped_filename(self):
-        created_paths = []
+    def test_setup_report_includes_date_and_run_id_in_filename(self):
+        with patch(
+            "report.create_file_path",
+            side_effect=lambda dirname, filename: (
+                Path("/tmp") / dirname / filename
+            ),
+        ) as create:
+            result = setup_report("run-123")
 
-        def create_path(dirname, filename):
-            path = Path("/tmp") / dirname / filename
-            created_paths.append(path)
-            return path
-
-        with patch("report.create_file_path", side_effect=create_path) as create:
-            first_path = setup_report()
-            second_path = setup_report()
-
-        self.assertEqual(first_path.parent, Path("/tmp") / REPORT_DIR)
-        self.assertEqual(second_path.parent, Path("/tmp") / REPORT_DIR)
-        self.assertNotEqual(first_path, second_path)
-        self.assertTrue(first_path.name.startswith("data_quality_"))
-        self.assertTrue(second_path.name.startswith("data_quality_"))
-        self.assertEqual(first_path.suffix, Path(REPORT_FILENAME).suffix)
-        self.assertEqual(second_path.suffix, Path(REPORT_FILENAME).suffix)
-        self.assertEqual(create.call_count, 2)
-        self.assertEqual(created_paths, [first_path, second_path])
+        self.assertEqual(result.parent, Path("/tmp") / REPORT_DIR)
+        create.assert_called_once()
+        self.assertEqual(create.call_args.kwargs["dirname"], REPORT_DIR)
+        filename = create.call_args.kwargs["filename"]
+        self.assertRegex(
+            filename,
+            rf"^{re.escape(Path(REPORT_FILENAME).stem)}_\d{{8}}_run-123"
+            rf"{re.escape(Path(REPORT_FILENAME).suffix)}$",
+        )
 
     def test_report_counts_invalid_records_and_individual_issues(self):
         source = pd.DataFrame({"order_item_id": [1, 2, 3]})
@@ -127,7 +125,7 @@ class Report2Tests(unittest.TestCase):
             )
             self.assertEqual(result["summary"]["total_records"], 1)
 
-    def test_each_report_creation_preserves_the_previous_file(self):
+    def test_each_run_id_writes_a_separate_report_file(self):
         source = pd.DataFrame({"order_item_id": [1]})
 
         with TemporaryDirectory() as directory:
@@ -137,7 +135,7 @@ class Report2Tests(unittest.TestCase):
                     Path(directory) / dirname / filename
                 ),
             ):
-                first_path = setup_report()
+                first_path = setup_report("run-one")
                 create_quality_report(
                     source,
                     source,
@@ -147,7 +145,7 @@ class Report2Tests(unittest.TestCase):
                 )
                 first_contents = first_path.read_text(encoding="utf-8")
 
-                second_path = setup_report()
+                second_path = setup_report("run-two")
                 create_quality_report(
                     source,
                     source,
@@ -159,6 +157,8 @@ class Report2Tests(unittest.TestCase):
             self.assertNotEqual(first_path, second_path)
             self.assertTrue(first_path.exists())
             self.assertTrue(second_path.exists())
+            self.assertRegex(first_path.name, r"^data_quality_\d{8}_run-one\.json$")
+            self.assertRegex(second_path.name, r"^data_quality_\d{8}_run-two\.json$")
             self.assertEqual(
                 first_path.read_text(encoding="utf-8"),
                 first_contents,

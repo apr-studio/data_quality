@@ -22,7 +22,7 @@ def get_correct_name(
         name (str): 名稱。
         defaultname (str): 預設名稱。
         pattern (str): 正則表達式，用於驗證名稱的合法性。
-        err_message (str): 在 Terminal 顯示錯誤訊息。
+        err_message (str): 名稱不合法時，透過 logging.warning() 記錄的警告訊息。
 
     Returns:
         str: 正確的名稱。
@@ -109,4 +109,3 @@ def get_current_dir_path() -> Path:
         Path: 當前資料夾的完整路徑。
     """
     return Path(__file__).resolve().parent
-
