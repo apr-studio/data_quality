@@ -1,1 +1,1 @@
-"""Reusable utility modules for the ETL pipeline."""
+"""保留舊版工具模組匯入路徑。"""

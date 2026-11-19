@@ -1,3 +1,5 @@
+# 舊版日誌設定模組相容層。
+
 import logging
 
 from .file_sys import create_file_path
@@ -15,6 +17,7 @@ def setup_logging(
     omit_repeated_times: bool = True,
     run_id_mode: str = "once",
 ) -> None:
+    """沿用舊版 setup_logging 介面初始化日誌處理器。"""
     log_file = create_file_path(dirname=LOGGING_DIR, filename=LOGGING_FILENAME)
     file_handler = create_file_handler(log_file, run_id)
     console_handler = create_console_handler(

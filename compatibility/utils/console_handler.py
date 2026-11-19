@@ -1,3 +1,5 @@
+# 舊版終端機日誌工具相容層。
+
 import logging
 
 from rich.console import ConsoleRenderable
@@ -8,6 +10,7 @@ from logging_setup.common import PipelineFormatter, RunIdFilter
 
 
 class PipelineRichHandler(RichHandler):
+    """保留分隔線原始文字並支援一般 Rich 日誌顯示。"""
     def render(
         self,
         *,

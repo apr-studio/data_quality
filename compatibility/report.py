@@ -1,3 +1,5 @@
+# 舊版報表模組相容層。
+
 from pathlib import Path
 
 from infrastructure.paths import create_file_path
@@ -10,6 +12,7 @@ from reporting.quality_report import (
 
 
 def setup_report(run_id: str) -> Path:
+    """沿用舊版介面建立報表檔案路徑。"""
     report_name = Path(REPORT_FILENAME)
     from datetime import datetime
 
@@ -25,6 +28,7 @@ def create_quality_report(
     inserted_count: int,
     output_path: Path,
 ) -> dict:
+    """沿用舊版介面產生並儲存品質報表。"""
     report = generate_quality_report(
         df=df,
         valid_df=valid_df,

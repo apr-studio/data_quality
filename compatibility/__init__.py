@@ -1,1 +1,1 @@
-"""Legacy imports retained for backward compatibility."""
+"""保留舊模組匯入路徑的相容層套件。"""

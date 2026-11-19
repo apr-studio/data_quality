@@ -1,3 +1,5 @@
+# 舊版資料庫模組相容層；實際連線邏輯仍集中於 infrastructure。
+
 import psycopg
 
 from config.settings import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
@@ -21,6 +23,7 @@ class DatabaseConnectionError(RuntimeError):
 
 
 def validate_db_config() -> None:
+    """沿用舊模組介面，並使用相同規則驗證資料庫設定。"""
     missing_names = []
     values = globals()
 
@@ -43,6 +46,7 @@ def validate_db_config() -> None:
 
 
 def get_connection():
+    """沿用舊版 get_connection 名稱建立 PostgreSQL 連線。"""
     try:
         validate_db_config()
         return psycopg.connect(
