@@ -24,6 +24,14 @@ class DatabaseConfigTests(unittest.TestCase):
 
         self.assertIn("DB_PORT", str(context.exception))
 
+    def test_rejects_invalid_connect_timeout(self):
+        with patch.object(db, "DB_PASSWORD", "secret"):
+            with patch.object(db, "DB_CONNECT_TIMEOUT", 301):
+                with self.assertRaises(db.DatabaseConfigurationError) as context:
+                    db.validate_db_config()
+
+        self.assertIn("DB_CONNECT_TIMEOUT", str(context.exception))
+
     def test_rejects_missing_password_before_connecting(self):
         with patch.object(db, "DB_PASSWORD", ""):
             with self.assertRaises(db.DatabaseConfigurationError):
@@ -43,6 +51,7 @@ class DatabaseConfigTests(unittest.TestCase):
             port=db.DB_PORT,
             dbname=db.DB_NAME,
             user=db.DB_USER,
+            connect_timeout=db.DB_CONNECT_TIMEOUT,
             password="secret",
         )
 

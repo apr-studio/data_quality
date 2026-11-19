@@ -74,6 +74,7 @@ OMIT_REPEATED_TIMES=true
 | `DB_NAME` | 資料庫名稱 | `python_db` |
 | `DB_USER` | 資料庫使用者 | `python_user` |
 | `DB_PASSWORD` | 資料庫密碼 | 無預設值 |
+| `DB_CONNECT_TIMEOUT` | PostgreSQL 連線逾時秒數（1–300） | `10` |
 
 密碼可以包含一般空白字元或特殊字元。含空格時建議使用雙引號：
 

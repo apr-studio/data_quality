@@ -68,6 +68,14 @@ class ExtractOrdersTests(unittest.TestCase):
         self.cursor.execute.assert_called_once()
         query = self.cursor.execute.call_args.args[0]
         self.assertIn("FROM public.orders", query)
+        for column in (
+            "order_item_id",
+            "order_id",
+            "unit_price",
+            "quantity",
+            "status",
+        ):
+            self.assertIn(column, query)
         self.assertIn("ORDER BY order_item_id", query)
 
 

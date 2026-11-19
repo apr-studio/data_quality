@@ -6,6 +6,14 @@ from quality.rules import transform_orders
 
 
 class TransformOrdersTests(unittest.TestCase):
+    def test_rejects_missing_required_columns(self):
+        with self.assertRaisesRegex(ValueError, "missing required columns"):
+            transform_orders(pd.DataFrame({"order_item_id": [1]}))
+
+    def test_rejects_non_dataframe_input(self):
+        with self.assertRaisesRegex(ValueError, "pandas DataFrame"):
+            transform_orders([{"order_item_id": 1}])
+
     def test_missing_quantity_is_reported_as_invalid(self):
         orders = pd.DataFrame(
             [

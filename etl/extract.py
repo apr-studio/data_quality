@@ -6,7 +6,12 @@ import pandas as pd
 def extract_orders(conn) -> pd.DataFrame:
     """執行訂單查詢，並將資料庫欄位名稱轉為 DataFrame 欄位。"""
     query = """
-        SELECT *
+        SELECT
+            order_item_id,
+            order_id,
+            unit_price,
+            quantity,
+            status
         FROM public.orders
         ORDER BY order_item_id;
     """

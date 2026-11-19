@@ -8,6 +8,7 @@ from config.settings import (
     DB_NAME,
     DB_USER,
     DB_PASSWORD,
+    DB_CONNECT_TIMEOUT,
 )
 
 
@@ -17,6 +18,7 @@ REQUIRED_DB_CONFIG = (
     "DB_NAME",
     "DB_USER",
     "DB_PASSWORD",
+    "DB_CONNECT_TIMEOUT",
 )
 
 
@@ -50,6 +52,19 @@ def validate_db_config() -> None:
             "資料庫設定無效：DB_PORT 必須介於 1 到 65535"
         )
 
+    if (
+        isinstance(DB_CONNECT_TIMEOUT, bool)
+        or not isinstance(DB_CONNECT_TIMEOUT, int)
+    ):
+        raise DatabaseConfigurationError(
+            "資料庫設定無效：DB_CONNECT_TIMEOUT 必須是整數"
+        )
+
+    if not 1 <= DB_CONNECT_TIMEOUT <= 300:
+        raise DatabaseConfigurationError(
+            "資料庫設定無效：DB_CONNECT_TIMEOUT 必須介於 1 到 300"
+        )
+
 
 def get_connection():
     """建立 PostgreSQL 連線；設定或連線失敗時拋出具名例外。"""
@@ -60,6 +75,7 @@ def get_connection():
             port=DB_PORT,
             dbname=DB_NAME,
             user=DB_USER,
+            connect_timeout=DB_CONNECT_TIMEOUT,
             password=DB_PASSWORD,
         )
     except DatabaseConfigurationError:

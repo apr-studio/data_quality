@@ -5,6 +5,23 @@ import pandas as pd
 
 def transform_orders(df):
     """檢查訂單欄位，分離有效資料與異常資料並計算營收。"""
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("Orders input must be a pandas DataFrame.")
+
+    required_columns = {
+        "order_item_id",
+        "order_id",
+        "unit_price",
+        "quantity",
+        "status",
+    }
+    missing_columns = sorted(required_columns.difference(df.columns))
+    if missing_columns:
+        raise ValueError(
+            "Orders data is missing required columns: "
+            + ", ".join(missing_columns)
+        )
+
     issues = []
 
     # 檢查單價是否缺少或為負數。
