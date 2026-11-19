@@ -1,6 +1,8 @@
 import json
 import logging
 from pathlib import Path
+from datetime import datetime
+from uuid import uuid4
 
 import pandas as pd
 
@@ -11,7 +13,13 @@ REPORT_FILENAME = "data_quality.json"
 
 
 def setup_report() -> Path:
-    return create_file_path(dirname=REPORT_DIR, filename=REPORT_FILENAME)
+    """Create a unique, timestamped path for a report."""
+    report_name = Path(REPORT_FILENAME)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    filename = (
+        f"{report_name.stem}_{timestamp}_{uuid4().hex}{report_name.suffix}"
+    )
+    return create_file_path(dirname=REPORT_DIR, filename=filename)
 
 
 def generate_quality_report(

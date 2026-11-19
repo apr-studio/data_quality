@@ -17,17 +17,27 @@ from report import (
 
 
 class Report2Tests(unittest.TestCase):
-    def test_setup_report_uses_configured_directory_and_filename(self):
-        expected_path = Path("/tmp/data_quality.json")
+    def test_setup_report_uses_unique_timestamped_filename(self):
+        created_paths = []
 
-        with patch("report2.create_file_path", return_value=expected_path) as create:
-            result = setup_report()
+        def create_path(dirname, filename):
+            path = Path("/tmp") / dirname / filename
+            created_paths.append(path)
+            return path
 
-        self.assertEqual(result, expected_path)
-        create.assert_called_once_with(
-            dirname=REPORT_DIR,
-            filename=REPORT_FILENAME,
-        )
+        with patch("report.create_file_path", side_effect=create_path) as create:
+            first_path = setup_report()
+            second_path = setup_report()
+
+        self.assertEqual(first_path.parent, Path("/tmp") / REPORT_DIR)
+        self.assertEqual(second_path.parent, Path("/tmp") / REPORT_DIR)
+        self.assertNotEqual(first_path, second_path)
+        self.assertTrue(first_path.name.startswith("data_quality_"))
+        self.assertTrue(second_path.name.startswith("data_quality_"))
+        self.assertEqual(first_path.suffix, Path(REPORT_FILENAME).suffix)
+        self.assertEqual(second_path.suffix, Path(REPORT_FILENAME).suffix)
+        self.assertEqual(create.call_count, 2)
+        self.assertEqual(created_paths, [first_path, second_path])
 
     def test_report_counts_invalid_records_and_individual_issues(self):
         source = pd.DataFrame({"order_item_id": [1, 2, 3]})
@@ -116,6 +126,43 @@ class Report2Tests(unittest.TestCase):
                 result,
             )
             self.assertEqual(result["summary"]["total_records"], 1)
+
+    def test_each_report_creation_preserves_the_previous_file(self):
+        source = pd.DataFrame({"order_item_id": [1]})
+
+        with TemporaryDirectory() as directory:
+            with patch(
+                "report.create_file_path",
+                side_effect=lambda dirname, filename: (
+                    Path(directory) / dirname / filename
+                ),
+            ):
+                first_path = setup_report()
+                create_quality_report(
+                    source,
+                    source,
+                    pd.DataFrame(),
+                    inserted_count=0,
+                    output_path=first_path,
+                )
+                first_contents = first_path.read_text(encoding="utf-8")
+
+                second_path = setup_report()
+                create_quality_report(
+                    source,
+                    source,
+                    pd.DataFrame(),
+                    inserted_count=0,
+                    output_path=second_path,
+                )
+
+            self.assertNotEqual(first_path, second_path)
+            self.assertTrue(first_path.exists())
+            self.assertTrue(second_path.exists())
+            self.assertEqual(
+                first_path.read_text(encoding="utf-8"),
+                first_contents,
+            )
 
     def test_save_rejects_invalid_report_and_path(self):
         with TemporaryDirectory() as directory:
