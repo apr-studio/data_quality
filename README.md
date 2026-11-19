@@ -37,7 +37,17 @@ Windows PowerShell 啟用虛擬環境的指令為：
 
 ## 資料庫設定
 
-依照環境修改 `config.py` 中的 `DB_HOST`、`DB_PORT`、`DB_NAME` 與 `DB_USER`。執行 Pipeline 時，程式會互動式提示輸入 PostgreSQL 密碼。
+在專案根目錄建立 `.env`，設定資料庫連線參數：
+
+```dotenv
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=python_db
+DB_USER=elena
+DB_PASSWORD=你的資料庫密碼
+```
+
+`.env` 已列入 `.gitignore`，請勿將密碼提交到 Git。也可以直接設定環境變數，或使用 `.env.example` 作為範本。
 
 資料庫需預先建立以下資料表及欄位：
 

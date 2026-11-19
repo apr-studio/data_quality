@@ -1,13 +1,13 @@
 # 建立資料庫連線
 
 import psycopg
-from getpass import getpass
 
 from config import (
     DB_HOST,
     DB_PORT,
     DB_NAME,
-    DB_USER
+    DB_USER,
+    DB_PASSWORD,
 )
 
 
@@ -16,6 +16,7 @@ REQUIRED_DB_CONFIG = (
     "DB_PORT",
     "DB_NAME",
     "DB_USER",
+    "DB_PASSWORD",
 )
 
 
@@ -63,18 +64,12 @@ def get_connection():
     try:
         validate_db_config()
 
-        password = getpass("請輸入 PostgreSQL 密碼：")
-        if not password or not password.strip():
-            raise DatabaseConfigurationError(
-                "資料庫設定不完整：未輸入 PostgreSQL 密碼"
-            )
-
         return psycopg.connect(
             host=DB_HOST,
             port=DB_PORT,
             dbname=DB_NAME,
             user=DB_USER,
-            password=password,
+            password=DB_PASSWORD,
         )
     except DatabaseConfigurationError:
         raise
