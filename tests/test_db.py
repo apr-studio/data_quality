@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-import db
+from compatibility import db
 
 
 class DatabaseConfigTests(unittest.TestCase):
@@ -33,7 +33,7 @@ class DatabaseConfigTests(unittest.TestCase):
         connection = object()
 
         with patch.object(db, "DB_PASSWORD", "secret"):
-            with patch("db.psycopg.connect") as mock_connect:
+            with patch("compatibility.db.psycopg.connect") as mock_connect:
                 mock_connect.return_value = connection
                 result = db.get_connection()
 

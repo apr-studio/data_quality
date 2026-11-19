@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from report import (
+from compatibility.report import (
     REPORT_DIR,
     REPORT_FILENAME,
     create_quality_report,
@@ -20,7 +20,7 @@ from report import (
 class Report2Tests(unittest.TestCase):
     def test_setup_report_includes_date_and_run_id_in_filename(self):
         with patch(
-            "report.create_file_path",
+            "compatibility.report.create_file_path",
             side_effect=lambda dirname, filename: (
                 Path("/tmp") / dirname / filename
             ),
@@ -130,7 +130,7 @@ class Report2Tests(unittest.TestCase):
 
         with TemporaryDirectory() as directory:
             with patch(
-                "report.create_file_path",
+                "compatibility.report.create_file_path",
                 side_effect=lambda dirname, filename: (
                     Path(directory) / dirname / filename
                 ),

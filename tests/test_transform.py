@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from transform import transform_orders
+from compatibility.transform import transform_orders
 
 
 class TransformOrdersTests(unittest.TestCase):
