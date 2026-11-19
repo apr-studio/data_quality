@@ -7,8 +7,8 @@ from unittest.mock import patch
 from rich.text import Text
 from rich.logging import RichHandler
 
-from compatibility.etl_logging import setup_logging, LOGGING_END
-from compatibility.utils.console_handler import create_console_handler
+from logging_setup.setup import setup_logging, LOGGING_END
+from logging_setup.console_handler import create_console_handler
 
 
 class SetupLoggingTests(unittest.TestCase):
@@ -17,10 +17,10 @@ class SetupLoggingTests(unittest.TestCase):
             log_path = Path(directory) / "pipeline.log"
 
             with patch(
-                "compatibility.etl_logging.create_file_path",
+                "logging_setup.setup.create_file_path",
                 return_value=log_path,
             ):
-                with patch("compatibility.etl_logging.logging.basicConfig") as basic_config:
+                with patch("logging_setup.setup.logging.basicConfig") as basic_config:
                     setup_logging("run-123", run_id_mode="every")
 
             handlers = basic_config.call_args.kwargs["handlers"]
@@ -52,7 +52,7 @@ class SetupLoggingTests(unittest.TestCase):
     def test_can_choose_whether_to_omit_repeated_times(self):
         for omit_repeated_times in (True, False):
             with self.subTest(omit_repeated_times=omit_repeated_times):
-                with patch("compatibility.utils.console_handler.PipelineRichHandler") as rich_handler:
+                with patch("logging_setup.console_handler.PipelineRichHandler") as rich_handler:
                     create_console_handler(
                         "run-123",
                         omit_repeated_times=omit_repeated_times,
@@ -72,10 +72,10 @@ class SetupLoggingTests(unittest.TestCase):
             log_path = Path(directory) / "pipeline.log"
 
             with patch(
-                "compatibility.etl_logging.create_file_path",
+                "logging_setup.setup.create_file_path",
                 return_value=log_path,
             ):
-                with patch("compatibility.etl_logging.logging.basicConfig") as basic_config:
+                with patch("logging_setup.setup.logging.basicConfig") as basic_config:
                     setup_logging("run-123")
 
             handlers = basic_config.call_args.kwargs["handlers"]

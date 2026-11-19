@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from compatibility.load import load_issues
+from etl.load import load_issues
 
 
 class LoadIssuesTests(unittest.TestCase):
@@ -14,7 +14,7 @@ class LoadIssuesTests(unittest.TestCase):
     def test_empty_issues_do_not_open_a_cursor(self):
         issues = pd.DataFrame()
 
-        with patch("compatibility.load.logging.info") as log_info:
+        with patch("etl.load.logging.info") as log_info:
             result = load_issues(self.connection, issues)
 
         self.assertEqual(result, 0)

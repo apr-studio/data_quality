@@ -158,16 +158,12 @@ python -m unittest discover -s tests -p "test_db.py" -v
 
 ```text
 .
-├── config.py          # 環境與資料庫設定
-├── db.py              # PostgreSQL 連線
 ├── main.py            # Pipeline CLI 入口
 ├── pipeline.py        # ETL Pipeline 編排
-├── compatibility/     # 已搬遷的舊模組相容層
 ├── config/
 │   └── settings.py    # 環境變數設定
 ├── etl/
 │   ├── extract.py     # 擷取訂單資料
-│   ├── transform.py   # Transform 相容匯出
 │   └── load.py        # 寫入異常紀錄
 ├── quality/
 │   └── rules.py       # 資料品質規則與營收計算
@@ -181,17 +177,6 @@ python -m unittest discover -s tests -p "test_db.py" -v
 │   ├── common.py      # 共用格式器與 run ID filter
 │   ├── console_handler.py
 │   └── file_handler.py
-├── utils/
-│   ├── file_handler.py    # 檔案日誌處理器
-│   ├── console_handler.py # 終端機日誌處理器
-│   └── logging_common.py  # 共用日誌格式器與 run ID filter
-├── extract.py         # 舊匯入相容層
-├── transform.py       # 舊匯入相容層
-├── load.py            # 舊匯入相容層
-├── report.py          # 報表舊匯入相容層
-├── db.py              # 資料庫舊匯入相容層
-├── file_sys.py        # 路徑舊匯入相容層
-├── etl_logging.py     # 日誌舊匯入相容層
 ├── .env.example       # 環境設定範本
 └── tests/             # unittest 測試
 ```

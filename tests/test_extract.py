@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from compatibility.extract import extract_orders
+from etl.extract import extract_orders
 
 
 class ExtractOrdersTests(unittest.TestCase):
