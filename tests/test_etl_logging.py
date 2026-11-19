@@ -106,6 +106,110 @@ class SetupLoggingTests(unittest.TestCase):
                 for handler in handlers:
                     handler.close()
 
+    def test_console_style_only_affects_console_message(self):
+        with TemporaryDirectory() as directory:
+            log_path = Path(directory) / "pipeline.log"
+            with patch(
+                "logging_setup.setup.create_file_path",
+                return_value=log_path,
+            ):
+                with patch("logging_setup.setup.logging.basicConfig") as basic_config:
+                    setup_logging("run-123")
+
+            file_handler, console_handler = basic_config.call_args.kwargs["handlers"]
+            record = logging.LogRecord(
+                name="test",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg="Pipeline started",
+                args=(),
+                exc_info=None,
+            )
+            record.console_style = "bold green"
+
+            try:
+                file_handler.filter(record)
+                console_handler.filter(record)
+                file_message = file_handler.format(record)
+                self.assertIn("Pipeline started", file_message)
+                self.assertNotIn("bold green", file_message)
+
+                message = Text("Pipeline started")
+                with patch.object(
+                    RichHandler,
+                    "render",
+                    return_value=Text("rendered"),
+                ) as rich_render:
+                    console_handler.render(
+                        record=record,
+                        traceback=None,
+                        message_renderable=message,
+                    )
+
+                styled_message = rich_render.call_args.kwargs["message_renderable"]
+                self.assertEqual(
+                    styled_message.spans[0].style,
+                    "bold green",
+                )
+                self.assertEqual(message.spans, [])
+            finally:
+                file_handler.close()
+                console_handler.close()
+
+    def test_console_renderable_can_use_multiple_colors_without_changing_file_message(self):
+        with TemporaryDirectory() as directory:
+            log_path = Path(directory) / "pipeline.log"
+            with patch(
+                "logging_setup.setup.create_file_path",
+                return_value=log_path,
+            ):
+                with patch("logging_setup.setup.logging.basicConfig") as basic_config:
+                    setup_logging("run-123")
+
+            file_handler, console_handler = basic_config.call_args.kwargs["handlers"]
+            message = "Pipeline 完成！新增異常紀錄：3 筆"
+            record = logging.LogRecord(
+                name="test",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg=message,
+                args=(),
+                exc_info=None,
+            )
+            record.console_renderable = Text.assemble(
+                ("Pipeline 完成！", "green"),
+                ("新增異常紀錄：", "white"),
+                ("3 筆", "bold yellow"),
+            )
+
+            try:
+                file_handler.filter(record)
+                console_handler.filter(record)
+                self.assertIn(message, file_handler.format(record))
+
+                with patch.object(
+                    RichHandler,
+                    "render",
+                    return_value=Text("rendered"),
+                ) as rich_render:
+                    console_handler.render(
+                        record=record,
+                        traceback=None,
+                        message_renderable=Text(message),
+                    )
+
+                styled_message = rich_render.call_args.kwargs["message_renderable"]
+                self.assertEqual(styled_message.plain, message)
+                self.assertEqual(
+                    [span.style for span in styled_message.spans],
+                    ["green", "white", "bold yellow"],
+                )
+            finally:
+                file_handler.close()
+                console_handler.close()
+
 
 if __name__ == "__main__":
     unittest.main()

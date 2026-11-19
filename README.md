@@ -101,6 +101,31 @@ DB_PASSWORD="my secret password"
 
 終端機和日誌檔都會記錄執行結果。日誌檔 `logs/pipeline.log` 的每筆紀錄都會包含 run ID；結束分隔線只顯示原始文字。
 
+單筆日誌可用 Rich 樣式設定終端機訊息顏色；未設定的日誌維持預設顏色。顏色只套用於終端機，`logs/pipeline.log` 仍會寫入不含顏色標記的原始訊息：
+
+```python
+logging.info("資料載入完成！", extra={"console_style": "green"})
+logging.info("發現異常資料", extra={"console_style": "bold yellow"})
+logging.info("Pipeline 執行失敗", extra={"console_style": "bold red"})
+```
+
+若同一筆訊息需要不同顏色，可透過 `console_renderable` 提供 Rich `Text`。日誌檔仍記錄一般的純文字訊息，不會包含終端機樣式：
+
+```python
+from rich.text import Text
+
+logging.info(
+    "Pipeline 完成！新增異常紀錄：3 筆",
+    extra={
+        "console_renderable": Text.assemble(
+            ("Pipeline 完成！", "green"),
+            ("新增異常紀錄：", "white"),
+            ("3 筆", "bold yellow"),
+        )
+    },
+)
+```
+
 ## 資料庫資料表
 
 資料庫需預先建立：

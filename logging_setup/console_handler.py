@@ -4,6 +4,7 @@ import logging
 
 from rich.console import ConsoleRenderable
 from rich.logging import RichHandler
+from rich.text import Text
 from rich.traceback import Traceback
 
 from .common import PipelineFormatter, RunIdFilter
@@ -20,6 +21,15 @@ class PipelineRichHandler(RichHandler):
     ) -> ConsoleRenderable:
         if getattr(record, "raw_message", False):
             return message_renderable
+        console_renderable = getattr(record, "console_renderable", None)
+        if console_renderable is not None:
+            if not isinstance(console_renderable, Text):
+                raise TypeError("console_renderable 必須是 rich.text.Text")
+            message_renderable = console_renderable
+        console_style = getattr(record, "console_style", None)
+        if console_style and isinstance(message_renderable, Text):
+            message_renderable = message_renderable.copy()
+            message_renderable.stylize(console_style)
         return super().render(
             record=record,
             traceback=traceback,

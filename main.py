@@ -2,6 +2,8 @@
 
 import logging
 from uuid import uuid4
+from rich.text import Text
+
 
 from infrastructure.database import get_connection
 from config.settings import CONSOLE_RUN_ID_MODE, OMIT_REPEATED_TIMES
@@ -19,7 +21,7 @@ def main():
     )
 
     if CONSOLE_RUN_ID_MODE == "once":
-        logging.info(f"Run ID: {run_id}")
+        logging.info(f"Run ID: {run_id}", extra={"console_renderable": Text.assemble({"Run ID: ", "green",},{f"{run_id}","bold yellow"})})
 
     try:
         with get_connection() as conn:
