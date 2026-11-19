@@ -1,7 +1,9 @@
 import json
 import logging
-
 from pathlib import Path
+
+import pandas as pd
+
 from file_sys import create_file_path
 
 REPORT_DIR = "reports"
@@ -9,48 +11,52 @@ REPORT_FILENAME = "data_quality.json"
 
 
 def setup_report() -> Path:
-    """
-    設定報告檔案的路徑，並確保目錄存在。
-
-    Returns:
-        Path: 報告檔案的路徑。
-    """
-    report_path = create_file_path(dirname=REPORT_DIR, filename=REPORT_FILENAME)  
-    
-    return report_path
+    return create_file_path(dirname=REPORT_DIR, filename=REPORT_FILENAME)
 
 
 def generate_quality_report(
-    total_records: int,
-    valid_records: int,
-    invalid_records: int,
+    df: pd.DataFrame,
+    valid_df: pd.DataFrame,
+    issue_df: pd.DataFrame,
+    inserted_count: int,
 ) -> dict:
     """
-    生成資料品質報告，包含總筆數、有效筆數、異常筆數以及有效率和異常率。
-    Args:
-        total_records (int): 總筆數。
-        valid_records (int): 有效筆數。
-        invalid_records (int): 異常筆數。       
+    計算資料品質統計並產生報告。
+
+    Parameters:
+        df: 原始訂單資料。
+        valid_df: 有效訂單資料。
+        issue_df: 異常問題紀錄。
+        inserted_count: 本次新增的異常紀錄數量。
 
     Returns:
-        dict: 資料品質報告，包含總筆數、有效筆數、
+        dict: Data Quality Report。
     """
 
-    record_counts = (total_records, valid_records, invalid_records)
-    if any(
-        not isinstance(count, int) or isinstance(count, bool)
-        for count in record_counts
+    if not all(
+        isinstance(frame, pd.DataFrame)
+        for frame in (df, valid_df, issue_df)
     ):
-        raise ValueError("Record counts must be integers.")
+        raise ValueError("Report inputs must be pandas DataFrames.")
 
-    if total_records < 0:
-        raise ValueError("Total records cannot be negative.")
+    if (
+        not isinstance(inserted_count, int)
+        or isinstance(inserted_count, bool)
+        or inserted_count < 0
+    ):
+        raise ValueError("Inserted count must be a non-negative integer.")
 
-    if valid_records < 0 or invalid_records < 0:
-        raise ValueError("Record counts cannot be negative.")
-
-    if valid_records + invalid_records != total_records:
-        raise ValueError("Record counts do not match.")
+    total_records = len(df)
+    valid_records = len(valid_df)
+    issue_count = len(issue_df)
+    if issue_df.empty:
+        invalid_records = 0
+    else:
+        if "order_item_id" not in issue_df.columns:
+            raise ValueError("Issue data must include an order_item_id column.")
+        if issue_df["order_item_id"].isna().any():
+            raise ValueError("Issue order_item_id values cannot be missing.")
+        invalid_records = issue_df["order_item_id"].nunique()
 
     if total_records == 0:
         valid_rate = 0.0
@@ -60,11 +66,19 @@ def generate_quality_report(
         invalid_rate = invalid_records / total_records * 100
 
     report = {
-        "total_records": total_records,
-        "valid_records": valid_records,
-        "invalid_records": invalid_records,
-        "valid_rate": round(valid_rate, 2),
-        "invalid_rate": round(invalid_rate, 2),
+        "summary": {
+            "total_records": total_records,
+            "valid_records": valid_records,
+            "invalid_records": invalid_records,
+            "issue_count": issue_count,
+        },
+        "quality_rates": {
+            "valid_rate": round(valid_rate, 2),
+            "invalid_rate": round(invalid_rate, 2),
+        },
+        "load_statistics": {
+            "inserted_count": inserted_count,
+        },
     }
 
     return report
@@ -75,40 +89,69 @@ def save_quality_report(
     output_path: Path,
 ) -> None:
     """
-    將資料品質報告保存為 JSON 檔案。
-    
-    Args:
-        report (dict): 資料品質報告。
-        output_path (Path): 報告檔案的路徑。
-    
-    Raises:
-        ValueError: 如果 report 不是字典或 output_path 不是 Path 物件。
+    將 Data Quality Report 儲存為 JSON。
+
+    Parameters:
+        report: 資料品質報告。
+        output_path: JSON 檔案輸出路徑。
     """
 
     if not isinstance(report, dict):
         raise ValueError("Report must be a dictionary.")
-
     if not isinstance(output_path, Path):
-        raise ValueError("Output path must be a Path object.")  
-    
-    # 確保輸出路徑的父目錄存在
-    if not output_path.parent.exists():
-        output_path.parent.mkdir(
-            parents=True,
-            exist_ok=True
+        raise ValueError("Output path must be a Path object.")
+
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    try:
+        with output_path.open(
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            json.dump(
+                report,
+                file,
+                indent=4,
+                ensure_ascii=False
+            )
+
+        logging.info(
+            "Data Quality Report 已儲存：%s",
+            output_path
         )
-   
 
-    with output_path.open(
-        "w",
-        encoding="utf-8"
-    ) as file:
-
-        json.dump(
-            report,
-            file,
-            indent=4,
-            ensure_ascii=False
+    except OSError:
+        logging.exception(
+            "Data Quality Report 儲存失敗。"
         )
+        raise
 
-    logging.info("Data Quality Report saved: %s", output_path)
+
+def create_quality_report(
+    df: pd.DataFrame,
+    valid_df: pd.DataFrame,
+    issue_df: pd.DataFrame,
+    inserted_count: int,
+    output_path: Path,
+) -> dict:
+    """
+    建立並儲存 Data Quality Report。
+    """
+
+    report = generate_quality_report(
+        df=df,
+        valid_df=valid_df,
+        issue_df=issue_df,
+        inserted_count=inserted_count,
+    )
+
+    save_quality_report(
+        report=report,
+        output_path=output_path,
+    )
+
+    return report

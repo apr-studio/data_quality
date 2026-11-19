@@ -7,6 +7,7 @@ from load import load_issues
 from etl_logging import setup_logging
 import logging
 import time
+from report import create_quality_report, setup_report
 
 
 def main():
@@ -42,6 +43,15 @@ def main():
 
             logging.info(f"資料載入完成！")
             logging.info(f"本次新增異常紀錄：{inserted_count}")
+
+            # 4. Generate and Save Report
+            create_quality_report(
+                df=df,
+                valid_df=valid_df,
+                issue_df=issue_df,
+                inserted_count=inserted_count,
+                output_path=setup_report(),
+            )
 
         logging.info("Pipeline 執行完成。")
 
