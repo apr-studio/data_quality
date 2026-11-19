@@ -4,7 +4,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from etl_logging import setup_logging, LOGGING_END
+from rich.text import Text
+from rich.logging import RichHandler
+
+from etl_logging import create_console_handler, setup_logging, LOGGING_END
 
 
 class SetupLoggingTests(unittest.TestCase):
@@ -20,6 +23,8 @@ class SetupLoggingTests(unittest.TestCase):
                     setup_logging("run-123")
 
             handlers = basic_config.call_args.kwargs["handlers"]
+            self.assertIsInstance(handlers[0], logging.FileHandler)
+            self.assertIsInstance(handlers[1], RichHandler)
             record = logging.LogRecord(
                 name="test",
                 level=logging.INFO,
@@ -42,6 +47,23 @@ class SetupLoggingTests(unittest.TestCase):
             for message in formatted:
                 self.assertIn("[run=run-123]", message)
                 self.assertIn("Pipeline started", message)
+
+    def test_can_choose_whether_to_omit_repeated_times(self):
+        for omit_repeated_times in (True, False):
+            with self.subTest(omit_repeated_times=omit_repeated_times):
+                with patch("etl_logging.PipelineRichHandler") as rich_handler:
+                    create_console_handler(
+                        "run-123",
+                        omit_repeated_times=omit_repeated_times,
+                    )
+
+                rich_handler.assert_called_once_with(
+                    show_time=True,
+                    omit_repeated_times=omit_repeated_times,
+                    show_level=True,
+                    show_path=False,
+                    rich_tracebacks=True,
+                )
 
     def test_raw_message_formatter_omits_default_fields(self):
         with TemporaryDirectory() as directory:
@@ -70,6 +92,14 @@ class SetupLoggingTests(unittest.TestCase):
                 for handler in handlers:
                     self.assertTrue(handler.filter(record))
                     self.assertEqual(handler.format(record), LOGGING_END)
+                console_handler = handlers[1]
+                message = Text(LOGGING_END)
+                rendered = console_handler.render(
+                    record=record,
+                    traceback=None,
+                    message_renderable=message,
+                )
+                self.assertIs(rendered, message)
             finally:
                 for handler in handlers:
                     handler.close()

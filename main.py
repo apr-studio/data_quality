@@ -59,7 +59,7 @@ def main():
 
     except Exception as e:
         logging.exception(f"Pipeline 執行失敗：{e}")
-        raise 
+        raise
     finally:
         elapsed_time = time.perf_counter() - start_time
         logging.info(f"Pipeline 執行時間：{elapsed_time:.2f} 秒")
