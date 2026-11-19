@@ -1,27 +1,28 @@
 # Data Quality ETL
 
-這個專案從 PostgreSQL 讀取訂單明細，檢查資料品質，計算有效完成訂單的營收，並將異常紀錄寫回 PostgreSQL。
+這個專案會從 PostgreSQL 擷取訂單明細、檢查資料品質、計算營收與異常紀錄，並將結果寫回資料庫及產生品質報表。
 
 ## Pipeline 流程
 
-1. **Extract**：讀取 `public.orders` 中的訂單資料。
-2. **Transform**：將已完成、單價不為空且不小於零、數量大於零的明細視為有效資料，並計算 `revenue`。以下狀況會建立異常紀錄：
-   - 商品單價缺失（`Missing Unit Price`）
-   - 商品單價小於零（`Invalid Unit Price`）；零單價視為有效
-   - 數量缺失、為零或小於零（`Invalid Quantity`）
-   - 訂單已取消（`Cancelled Order`）
-3. **Load**：將異常寫入 `public.data_quality_issue_log`。相同訂單明細與異常類型不會重複新增。
+1. **Extract**：讀取 `public.orders` 的訂單資料。
+2. **Transform**：
+   - 已完成、單價不為空且不小於零、數量大於零的明細視為有效資料。
+   - 計算有效資料的營收。
+   - 以下資料會建立異常紀錄：商品單價缺失、單價小於零、數量缺失或無效、訂單已取消。
+3. **Load**：將異常寫入 `public.data_quality_issue_log`；唯一限制會避免重複新增。
+4. **Report**：產生每次執行獨立的 JSON 品質報表。
 
-目前有效資料只在轉換階段產生，不會寫回資料庫。
+有效資料只會在轉換階段產生，不會寫回資料庫。
 
 ## 環境需求
 
-- Python
+- Python 3
 - PostgreSQL
+- 專案相依套件：見 `requirements.txt`
 
 ## 安裝
 
-在專案根目錄建立並啟用虛擬環境，再安裝相依套件：
+在專案根目錄建立並啟用虛擬環境：
 
 ```bash
 python3 -m venv .venv
@@ -29,15 +30,23 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Windows PowerShell 啟用虛擬環境的指令為：
+Windows PowerShell：
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-## 資料庫設定
+## 環境設定
 
-在專案根目錄建立 `.env`，設定資料庫連線參數：
+複製 `.env.example`：
+
+```bash
+cp .env.example .env.local
+```
+
+然後修改 `.env.local`：
 
 ```dotenv
 DB_HOST=localhost
@@ -45,65 +54,144 @@ DB_PORT=5432
 DB_NAME=python_db
 DB_USER=elena
 DB_PASSWORD=你的資料庫密碼
+
+CONSOLE_RUN_ID_MODE=once
+OMIT_REPEATED_TIMES=true
 ```
 
-`.env` 已列入 `.gitignore`，請勿將密碼提交到 Git。也可以直接設定環境變數，或使用 `.env.example` 作為範本。
+程式載入順序如下：
 
-資料庫需預先建立以下資料表及欄位：
+1. `.env`
+2. `.env.local`
+3. 已設定於作業系統的環境變數；作業系統環境變數優先且不會被覆蓋
+
+### 資料庫設定
+
+| 變數 | 說明 | 預設值 |
+|---|---|---|
+| `DB_HOST` | PostgreSQL 主機 | `localhost` |
+| `DB_PORT` | PostgreSQL 連接埠 | `5432` |
+| `DB_NAME` | 資料庫名稱 | `python_db` |
+| `DB_USER` | 資料庫使用者 | `python_user` |
+| `DB_PASSWORD` | 資料庫密碼 | 無預設值 |
+
+密碼可以包含一般空白字元或特殊字元。含空格時建議使用雙引號：
+
+```dotenv
+DB_PASSWORD="my secret password"
+```
+
+`.env`、`.env.*` 都已列入 `.gitignore`；`.env.example` 例外並可提交。請勿將真實密碼寫入 `.env.example` 或版本控制。
+
+### 終端機日誌設定
+
+`CONSOLE_RUN_ID_MODE` 控制終端機中的 run ID 顯示方式：
+
+- `once`：執行開始前印一次 `Run ID`，後續訊息不重複顯示。
+- `every`：每則終端機日誌都顯示 `[run=<run_id>]`。
+
+預設值為 `once`。
+
+`OMIT_REPEATED_TIMES` 控制 Rich終端機是否省略連續重複的時間：
+
+- `true`：省略連續重複的時間（預設）。
+- `false`：每則終端機訊息都顯示時間。
+
+值只接受 `true` 或 `false`，大小寫不區分。
+
+終端機和日誌檔都會記錄執行結果。日誌檔 `logs/pipeline.log` 的每筆紀錄都會包含 run ID；結束分隔線只顯示原始文字。
+
+## 資料庫資料表
+
+資料庫需預先建立：
 
 - `public.orders`：至少包含 `order_item_id`、`order_id`、`unit_price`、`quantity` 和 `status`。
-- `public.data_quality_issue_log`：包含 `order_item_id`、`order_id`、`issue_type` 和 `issue_description`，並在 `(order_item_id, issue_type)` 上設定唯一限制，以支援重複執行時略過已存在的異常。
+- `public.data_quality_issue_log`：包含 `order_item_id`、`order_id`、`issue_type` 和 `issue_description`。
+
+`public.data_quality_issue_log` 的 `(order_item_id, issue_type)` 應設定唯一限制，以便重複執行時略過已存在的異常。
 
 ## 執行
 
-確認資料庫設定與必要資料表已備妥後，在專案根目錄執行完整 ETL：
+確認環境設定及資料表已備妥後，在專案根目錄執行：
 
 ```bash
 python main.py
 ```
 
-`main.py` 會依序讀取訂單、檢查及轉換資料，再呼叫 `load.py` 中的 `load_issues()`，將異常寫入 `public.data_quality_issue_log`。`load.py` 提供載入函式，並非單獨執行的程式入口；請執行 `main.py` 以完成資料庫讀取與寫入。若沒有異常資料，便不會新增紀錄。每次執行新增的筆數會顯示於終端機；相同的訂單明細和異常類型已存在時，資料庫唯一限制會讓它略過。
+一次執行會依序完成 Extract、Transform、Load 與 Report。每次執行新增的異常筆數會顯示於終端機；相同資料及異常類型已存在時，不會重複新增。
 
-### 輸出檔案
+### 報表輸出
 
-- 日誌同時輸出至終端機及 `logs/pipeline.log`。每筆紀錄包含時間、日誌等級和本次執行 ID；結束分隔線只顯示原始文字。
-- 每次執行會在 `reports/` 產生獨立的 JSON 品質報表，檔名格式為 `data_quality_YYYYMMDD_<run_id>.json`，可用 run ID 對照同次執行的日誌。
-- 報表包含原始資料、有效資料、異常資料及異常項目數量；有效率與異常率以百分比表示並四捨五入至小數點後兩位。`invalid_records` 是有異常的不同訂單明細數，`issue_count` 則是異常紀錄總數；`inserted_count` 是本次實際新增至資料庫的異常筆數。
+每次執行會建立：
+
+```text
+reports/data_quality_YYYYMMDD_<run_id>.json
+```
+
+報表包含原始資料筆數、有效資料筆數、異常資料筆數、異常項目數量、有效率、異常率及本次新增筆數。
+
+- `valid_rate` 與 `invalid_rate` 以百分比表示並四捨五入至小數點後兩位。
+- `invalid_records` 是有異常的不同 `order_item_id` 數量。
+- `issue_count` 是異常紀錄總數。
+- `inserted_count` 是本次實際新增到資料庫的筆數。
 
 ## 測試
 
-測試使用 Python 內建的 `unittest`，不需額外安裝測試套件，也不需要連接 PostgreSQL。請先依「安裝」章節安裝專案相依套件（測試會使用 `pandas`），並在專案根目錄執行：
+測試使用 Python 內建的 `unittest`，不需要連接 PostgreSQL：
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-單獨執行轉換或資料提取測試：
+執行單一測試模組：
 
 ```bash
 python -m unittest discover -s tests -p "test_transform.py" -v
 python -m unittest discover -s tests -p "test_extract.py" -v
+python -m unittest discover -s tests -p "test_etl_logging.py" -v
+python -m unittest discover -s tests -p "test_db.py" -v
 ```
 
-轉換測試涵蓋有效資料、營收及異常判斷；提取測試以 mock 資料庫游標驗證 SQL、欄位名稱、資料列及空結果，不會連接 PostgreSQL。資料庫載入本身不在這些單元測試範圍內，請透過 `python main.py` 執行完整流程。
+資料庫載入需要透過 `python main.py` 執行完整流程。
 
 ## 專案結構
 
 ```text
 .
-├── config.py          # PostgreSQL 連線設定
-├── db.py              # 資料庫連線
-├── extract.py         # 讀取訂單資料
-├── transform.py       # 品質檢查與營收計算
-├── load.py            # 寫入異常紀錄
-├── etl_logging.py     # Pipeline 日誌設定
-├── report.py          # 產生並儲存品質報表
-├── file_sys.py        # 建立輸出目錄及檔案路徑
-├── main.py            # Pipeline 入口
-└── tests/
-    ├── test_extract.py
-    ├── test_load.py
-    ├── test_report.py
-    ├── test_etl_logging.py
-    └── test_transform.py
+├── config.py          # 環境與資料庫設定
+├── db.py              # PostgreSQL 連線
+├── main.py            # Pipeline CLI 入口
+├── pipeline.py        # ETL Pipeline 編排
+├── compatibility/     # 已搬遷的舊模組相容層
+├── config/
+│   └── settings.py    # 環境變數設定
+├── etl/
+│   ├── extract.py     # 擷取訂單資料
+│   ├── transform.py   # Transform 相容匯出
+│   └── load.py        # 寫入異常紀錄
+├── quality/
+│   └── rules.py       # 資料品質規則與營收計算
+├── reporting/
+│   └── quality_report.py # 品質報表統計與儲存
+├── infrastructure/
+│   ├── database.py    # PostgreSQL 連線與設定驗證
+│   └── paths.py       # 檔案與目錄路徑工具
+├── logging_setup/
+│   ├── setup.py       # 設定與啟用日誌處理器
+│   ├── common.py      # 共用格式器與 run ID filter
+│   ├── console_handler.py
+│   └── file_handler.py
+├── utils/
+│   ├── file_handler.py    # 檔案日誌處理器
+│   ├── console_handler.py # 終端機日誌處理器
+│   └── logging_common.py  # 共用日誌格式器與 run ID filter
+├── extract.py         # 舊匯入相容層
+├── transform.py       # 舊匯入相容層
+├── load.py            # 舊匯入相容層
+├── report.py          # 報表舊匯入相容層
+├── db.py              # 資料庫舊匯入相容層
+├── file_sys.py        # 路徑舊匯入相容層
+├── etl_logging.py     # 日誌舊匯入相容層
+├── .env.example       # 環境設定範本
+└── tests/             # unittest 測試
 ```

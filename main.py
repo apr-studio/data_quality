@@ -1,68 +1,30 @@
-# 執行整個 Pipeline
+# Pipeline 命列執行入口。
 
-from db import get_connection
-from extract import extract_orders
-from transform import transform_orders
-from load import load_issues
-from etl_logging import setup_logging, LOGGING_END
 import logging
-import time
 from uuid import uuid4
-from report import create_quality_report, setup_report
+
+from infrastructure.database import get_connection
+from config.settings import CONSOLE_RUN_ID_MODE, OMIT_REPEATED_TIMES
+from logging_setup.setup import setup_logging, LOGGING_END
+from pipeline import run_pipeline
 
 
 def main():
-    """
-    執行整個 ETL Pipeline，包括 Extract、Transform 和 Load 三個步驟。
-    """
-
+    """初始化日誌並以資料庫連線執行完整 Pipeline。"""
     run_id = uuid4().hex
-    setup_logging(run_id)
+    setup_logging(
+        run_id,
+        omit_repeated_times=OMIT_REPEATED_TIMES,
+        run_id_mode=CONSOLE_RUN_ID_MODE,
+    )
 
-    start_time = time.perf_counter()
+    if CONSOLE_RUN_ID_MODE == "once":
+        logging.info(f"Run ID: {run_id}")
 
-    logging.info("Pipeline 開始執行。")
-
-    try :
+    try:
         with get_connection() as conn:
-
-            logging.info("資料庫連線成功。")
-
-            # 1. Extract
-            df = extract_orders(conn)
-
-            logging.info(f"原始資料筆數：{len(df)}")
-
-
-            # 2. Transform
-            valid_df, issue_df = transform_orders(df)
-
-            logging.info(f"有效資料筆數：{len(valid_df)}")
-            logging.info(f"異常資料筆數：{len(issue_df)}")
-
-            # 3. Load
-            inserted_count = load_issues(conn, issue_df)
-
-            logging.info(f"資料載入完成！")
-            logging.info(f"本次新增異常紀錄：{inserted_count}")
-
-            # 4. Generate and Save Report
-            create_quality_report(
-                df=df,
-                valid_df=valid_df,
-                issue_df=issue_df,
-                inserted_count=inserted_count,
-                output_path=setup_report(run_id),
-            )
-
-        logging.info("Pipeline 執行完成。")
-
-    except Exception as e:
-        logging.exception(f"Pipeline 執行失敗：{e}")
-        raise
+            run_pipeline(conn, run_id)
     finally:
-        elapsed_time = time.perf_counter() - start_time
-        logging.info(f"Pipeline 執行時間：{elapsed_time:.2f} 秒")
         logging.info("Pipeline 結束。")
         logging.info(LOGGING_END, extra={"raw_message": True})
 
