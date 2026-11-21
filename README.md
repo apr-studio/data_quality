@@ -59,11 +59,25 @@ CONSOLE_RUN_ID_MODE=once
 OMIT_REPEATED_TIMES=true
 ```
 
-程式載入順序如下：
+設定的優先順序如下（由低到高）：
 
 1. `.env`
-2. `.env.local`
-3. 已設定於作業系統的環境變數；作業系統環境變數優先且不會被覆蓋
+2. `.env.local`：覆蓋 `.env` 中相同名稱的設定
+3. 作業系統環境變數：優先於兩個設定檔且不會被覆蓋
+
+因此，要由作業系統環境變數覆蓋設定檔中的值，可在執行前設定，例如：
+
+```bash
+DB_HOST=postgres.example DB_PASSWORD='你的密碼' python main.py
+```
+
+PowerShell：
+
+```powershell
+$env:DB_HOST = "postgres.example"
+$env:DB_PASSWORD = "你的密碼"
+python main.py
+```
 
 ### 資料庫設定
 
@@ -93,7 +107,7 @@ DB_PASSWORD="my secret password"
 
 預設值為 `once`。
 
-`OMIT_REPEATED_TIMES` 控制 Rich終端機是否省略連續重複的時間：
+`OMIT_REPEATED_TIMES` 控制 Rich 終端機是否省略連續重複的時間：
 
 - `true`：省略連續重複的時間（預設）。
 - `false`：每則終端機訊息都顯示時間。
