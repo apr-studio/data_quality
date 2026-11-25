@@ -14,7 +14,7 @@ class TransformOrdersTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "pandas DataFrame"):
             transform_orders([{"order_item_id": 1}])
 
-    def test_missing_quantity_is_reported_as_invalid(self):
+    def test_missing_quantity_is_reported_separately(self):
         orders = pd.DataFrame(
             [
                 {
@@ -38,8 +38,8 @@ class TransformOrdersTests(unittest.TestCase):
             [
                 {
                     "order_item_id": 1,
-                    "issue_type": "Invalid Quantity",
-                    "issue_description": "Quantity must be present and greater than zero",
+                    "issue_type": "Missing Quantity",
+                    "issue_description": "Quantity is missing",
                 }
             ],
         )
@@ -74,6 +74,13 @@ class TransformOrdersTests(unittest.TestCase):
         self.assertEqual(
             issues["issue_type"].tolist(),
             ["Invalid Quantity", "Invalid Quantity"],
+        )
+        self.assertEqual(
+            issues["issue_description"].tolist(),
+            [
+                "Quantity must be greater than zero",
+                "Quantity must be greater than zero",
+            ],
         )
 
     def test_missing_price_and_cancelled_order_are_reported(self):

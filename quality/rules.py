@@ -42,11 +42,16 @@ def transform_orders(df):
     # 檢查數量是否缺少、等於零或為負數。
     invalid_quantity = df["quantity"].isna() | (df["quantity"] <= 0)
     for _, row in df[invalid_quantity].iterrows():
+        is_missing = pd.isna(row["quantity"])
         issues.append({
             "order_item_id": row["order_item_id"],
             "order_id": row["order_id"],
-            "issue_type": "Invalid Quantity",
-            "issue_description": "Quantity must be present and greater than zero",
+            "issue_type": "Missing Quantity" if is_missing else "Invalid Quantity",
+            "issue_description": (
+                "Quantity is missing"
+                if is_missing
+                else "Quantity must be greater than zero"
+            ),
         })
 
     # 已取消訂單會另外建立異常紀錄。
@@ -65,6 +70,7 @@ def transform_orders(df):
         (df["status"] == "Completed")
         & df["unit_price"].notna()
         & (df["unit_price"] >= 0)
+        & df["quantity"].notna()
         & (df["quantity"] > 0)
     )
     valid_df = df.loc[valid_mask].copy()
