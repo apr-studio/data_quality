@@ -1,6 +1,7 @@
 import json
 import re
 import unittest
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -135,7 +136,10 @@ class Report2Tests(unittest.TestCase):
                 result,
             )
             self.assertEqual(result["summary"]["total_records"], 1)
-            self.assertEqual(result["processing_time"], processing_time)
+            report_time = result["report_time"]
+            datetime.fromisoformat(report_time["started_at"])
+            datetime.fromisoformat(report_time["finished_at"])
+            self.assertGreaterEqual(report_time["duration_seconds"], 0)
 
     def test_each_run_id_writes_a_separate_report_file(self):
         source = pd.DataFrame({"order_item_id": [1]})

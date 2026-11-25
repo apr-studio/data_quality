@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, TypedDict
@@ -26,6 +27,12 @@ class ProcessingTime(TypedDict):
     finished_at: str
     duration_seconds: float
     stages: ProcessingStages
+
+
+class ReportTime(TypedDict):
+    started_at: str
+    finished_at: str
+    duration_seconds: float
 
 
 def setup_report(run_id: str) -> Path:
@@ -123,6 +130,8 @@ def create_quality_report(
     processing_time: Optional[ProcessingTime] = None,
 ) -> dict:
     """產生品質統計並儲存至指定路徑。"""
+    report_started_at = datetime.now().astimezone()
+    report_start = time.perf_counter()
     report = generate_quality_report(
         df=df,
         valid_df=valid_df,
@@ -130,5 +139,12 @@ def create_quality_report(
         inserted_count=inserted_count,
         processing_time=processing_time,
     )
+    report_finished_at = datetime.now().astimezone()
+    report_time: ReportTime = {
+        "started_at": report_started_at.isoformat(timespec="milliseconds"),
+        "finished_at": report_finished_at.isoformat(timespec="milliseconds"),
+        "duration_seconds": round(time.perf_counter() - report_start, 3),
+    }
+    report["report_time"] = report_time
     save_quality_report(report=report, output_path=output_path)
     return report

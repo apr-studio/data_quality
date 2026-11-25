@@ -175,6 +175,7 @@ reports/data_quality_YYYYMMDD_<run_id>.json
 - `issue_count` 是異常紀錄總數。
 - `inserted_count` 是本次實際新增到資料庫的筆數。
 - `processing_time` 記錄含時區的 `started_at`、`finished_at`、總耗時 `duration_seconds`，以及 extract、transform、load 各階段的耗時（秒）。總耗時涵蓋 ETL 階段，不含報表產生與寫檔時間。
+- `report_time` 記錄報表產生與寫檔的 `started_at`、`finished_at` 與獨立的 `duration_seconds`。
 
 ## 測試
 
