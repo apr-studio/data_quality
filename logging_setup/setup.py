@@ -9,7 +9,7 @@ from .file_handler import create_file_handler
 
 LOGGING_DIR = "logs"
 LOGGING_FILENAME = "pipeline.log"
-LOGGING_END = "========================================================================================================"
+LOGGING_END = "=" * 104
 
 
 def setup_logging(
