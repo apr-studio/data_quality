@@ -1,3 +1,4 @@
+from .report_comparison import compare_quality_reports
 from .quality_report import (
     REPORT_DIR,
     REPORT_FILENAME,
@@ -8,6 +9,7 @@ from .quality_report import (
 )
 
 __all__ = [
+    "compare_quality_reports",
     "REPORT_DIR",
     "REPORT_FILENAME",
     "create_quality_report",

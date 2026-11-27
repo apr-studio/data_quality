@@ -177,6 +177,23 @@ reports/data_quality_YYYYMMDD_<run_id>.json
 - `processing_time` 記錄含時區的 `started_at`、`finished_at`、總耗時 `duration_seconds`，以及 extract、transform、load 各階段的耗時（秒）。總耗時涵蓋 ETL 階段，不含報表產生與寫檔時間。
 - `report_time` 記錄報表產生與寫檔的 `started_at`、`finished_at` 與獨立的 `duration_seconds`。
 
+### 跨報表比較
+
+可在 Python 程式或 Notebook 中比較多次執行的報表。比較結果會依執行時間排序，並提供各指標相對於前一份報表的差值：
+
+```python
+from pathlib import Path
+
+from reporting import compare_quality_reports
+
+comparison = compare_quality_reports(
+    Path("reports").glob("data_quality_*.json")
+)
+print(comparison.to_string(index=False))
+```
+
+至少需要兩份含有效時間戳的報表；比較時優先使用含時區的 `processing_time.started_at`，若沒有則使用 `report_time.started_at`。兩者皆缺少的報表會記錄警告並略過。比較前請確認報表使用相同資料範圍與品質規則。`inserted_count` 是該次新寫入資料庫的異常數，不等同於 `issue_count`。
+
 ## 測試
 
 測試使用 Python 內建的 `unittest`，不需要連接 PostgreSQL：
@@ -192,6 +209,7 @@ python -m unittest discover -s tests -p "test_transform.py" -v
 python -m unittest discover -s tests -p "test_extract.py" -v
 python -m unittest discover -s tests -p "test_etl_logging.py" -v
 python -m unittest discover -s tests -p "test_db.py" -v
+python -m unittest discover -s tests -p "test_report_comparison.py" -v
 ```
 
 資料庫載入需要透過 `python main.py` 執行完整流程。
@@ -210,7 +228,8 @@ python -m unittest discover -s tests -p "test_db.py" -v
 ├── quality/
 │   └── rules.py       # 資料品質規則與營收計算
 ├── reporting/
-│   └── quality_report.py # 品質報表統計與儲存
+│   ├── quality_report.py # 品質報表統計與儲存
+│   └── report_comparison.py # 跨報表指標比較
 ├── infrastructure/
 │   ├── database.py    # PostgreSQL 連線與設定驗證
 │   └── paths.py       # 檔案與目錄路徑工具
