@@ -55,8 +55,17 @@ def get_filename(filename: str = DEFAULT_FILENAME) -> str:
 
 def create_dir_path(dirname: str = DEFAULT_DIRNAME) -> Path:
     """建立專案根目錄下的指定資料夾並回傳路徑。"""
-    dir_path = get_current_dir_path() / get_dirname(dirname)
+    project_path = get_current_dir_path()
+    dir_path = project_path / get_dirname(dirname)
+    _validate_project_path(dir_path, project_path)
+    if dir_path.is_symlink():
+        raise ValueError("輸出目錄不得為符號連結。")
+
     dir_path.mkdir(parents=True, exist_ok=True)
+    _validate_project_path(dir_path, project_path)
+    if dir_path.is_symlink():
+        raise ValueError("輸出目錄不得為符號連結。")
+
     return dir_path
 
 
@@ -65,9 +74,22 @@ def create_file_path(
     filename: str = DEFAULT_FILENAME,
 ) -> Path:
     """建立完整檔案路徑；必要時會自動建立父資料夾。"""
-    return create_dir_path(dirname) / get_filename(filename)
+    dir_path = create_dir_path(dirname)
+    file_path = dir_path / get_filename(filename)
+    _validate_project_path(file_path, get_current_dir_path())
+    if file_path.is_symlink():
+        raise ValueError("輸出檔案不得為符號連結。")
+    return file_path
 
 
 def get_current_dir_path() -> Path:
     """取得專案根目錄，而不受執行時工作目錄影響。"""
     return Path(__file__).resolve().parents[1]
+
+
+def _validate_project_path(path: Path, project_path: Path) -> None:
+    """拒絕解析後位於專案根目錄之外的輸出路徑。"""
+    try:
+        path.resolve().relative_to(project_path.resolve())
+    except ValueError as exc:
+        raise ValueError("輸出路徑不得超出專案根目錄。") from exc
